@@ -28,7 +28,84 @@ async function run() {
         const postCollection = client.db('ioneDB').collection('posts');
         const savePostCollection = client.db('ioneDB').collection('savePost');
         const messageCollection = client.db('ioneDB').collection('message');
+        const reportSuccessCollection = client.db('ioneDB').collection('reportSuccess');
+        const adminPostCollection = client.db('ioneDB').collection('adminPost');
 
+
+
+        // adminPostCollection
+        app.post('/adminPosts', async(req, res)=>{
+            const post = req.body;
+            const result = await adminPostCollection.insertOne(post);
+            res.send(result);
+        })
+        app.get('/adminPosts', async (req, res) => {
+            const filter = req.query;
+            // console.log(filter);
+            const query = {};
+            const options = {
+                sort: {
+                    time: filter.sort == 'asc' ? -1 : 1
+                }
+            }
+            const cursor = adminPostCollection.find(query, options);
+            const result = await cursor.toArray();
+            res.send(result);
+        })
+
+        app.put('/adminPosts/private/:id', async (req, res) => {
+            const id = req.params.id;
+            const privacy = req.body;
+            const filter = { _id: new ObjectId(id) };
+            const options = { upsert: true };
+            const updatePrivacy = {
+                $set: {
+                    privacy: privacy.privacy,
+                }
+            }
+            const result = await adminPostCollection.updateOne(filter, updatePrivacy, options);
+            res.send(result);
+        })
+        app.put('/adminPosts/public/:id', async (req, res) => {
+            const id = req.params.id;
+            const privacy = req.body;
+            const filter = { _id: new ObjectId(id) };
+            const options = { upsert: true };
+            const updatePrivacy = {
+                $set: {
+                    privacy: privacy.privacy,
+                }
+            }
+            const result = await adminPostCollection.updateOne(filter, updatePrivacy, options);
+            res.send(result);
+        })
+        app.delete('/adminPosts/delete/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await adminPostCollection.deleteOne(query);
+            res.send(result);
+        })
+
+        
+        // reportSuccessCollection
+        app.post('/reportSuccess', async(req, res)=>{
+            const post = req.body;
+            const result = await reportSuccessCollection.insertOne(post);
+            res.send(result);
+        })
+        app.get('/reportSuccess', async (req, res) => {
+            const filter = req.query;
+            // console.log(filter);
+            const query = {};
+            const options = {
+                sort: {
+                    successTime: filter.sort == 'asc' ? -1 : 1
+                }
+            }
+            const cursor = reportSuccessCollection.find(query, options);
+            const result = await cursor.toArray();
+            res.send(result);
+        })
 
         // messageCollection
         app.post('/messages', async(req, res)=>{
@@ -146,6 +223,21 @@ async function run() {
             const result = await postCollection.updateOne(filter, updateLike, options);
             res.send(result);
         })
+        app.put('/userPost/report/:id', async (req, res) => {
+            const id = req.params.id;
+            const post = req.body;
+            console.log(post);
+            const report = post.report;
+            const filter = { _id: new ObjectId(id) };
+            const options = { upsert: true };
+            const updateReport = {
+                $set: {
+                    report: report
+                }
+            }
+            const result = await postCollection.updateOne(filter, updateReport, options);
+            res.send(result);
+        })
 
 
 
@@ -174,6 +266,16 @@ async function run() {
         app.get('/users', async (req, res) => {
             const user = await userCollection.find().toArray();
             res.send(user);
+        })
+        app.get('/adminUser/:email', async(req, res)=>{
+            const email = req.params.email;
+            const query = {email: email};
+            const user = await userCollection.findOne(query);
+            let admin = false;
+            if(user){
+                admin = user?.roll === 'Admin';
+            }
+            res.send({admin});
         })
 
         app.put('/users/banner/:id', async (req, res) => {
